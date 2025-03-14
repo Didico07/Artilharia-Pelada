@@ -8,7 +8,26 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         input, button { margin: 5px; padding: 10px; font-size: 16px; }
         ul { list-style: none; padding: 0; }
-        li { margin: 5px 0; font-size: 18px; }
+        li { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between;
+            padding: 5px 10px;
+            border-bottom: 1px solid #ddd;
+            font-size: 16px;
+        }
+        .player-info { 
+            flex-grow: 1; 
+            text-align: left; 
+        }
+        .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+        button { 
+            padding: 5px 10px; 
+            font-size: 14px;
+        }
         .loading { font-size: 14px; color: gray; }
     </style>
 </head>
@@ -27,33 +46,28 @@
         let players = [];
 
         function fetchPlayers() {
+            document.getElementById("status").innerText = "Carregando jogadores...";
             fetch(sheetUrl + "?action=get")
                 .then(response => response.json())
                 .then(data => {
                     players = data;
                     updateRanking();
-                });
+                    document.getElementById("status").innerText = "";
+                })
+                .catch(() => document.getElementById("status").innerText = "Erro ao carregar jogadores.");
         }
 
         function addPlayer() {
             const name = document.getElementById("playerName").value.trim();
             if (name === "") return;
 
-            // Atualiza a tela primeiro
+            document.getElementById("status").innerText = "Adicionando jogador...";
             players.push({ name, goals: 0 });
             updateRanking();
 
-            // Envia para o Google Sheets em background
-            document.getElementById("status").textContent = "Salvando...";
             fetch(sheetUrl + `?action=add&name=${encodeURIComponent(name)}`)
-                .then(() => {
-                    document.getElementById("status").textContent = "";
-                    fetchPlayers(); // Atualiza os dados para garantir que estão certos
-                })
-                .catch(error => {
-                    document.getElementById("status").textContent = "Erro ao salvar.";
-                    console.error("Erro ao adicionar jogador:", error);
-                });
+                .then(() => fetchPlayers())
+                .catch(() => document.getElementById("status").innerText = "Erro ao adicionar jogador.");
 
             document.getElementById("playerName").value = "";
         }
@@ -61,40 +75,42 @@
         function addGoal(index) {
             players[index].goals++;
             updateRanking();
-            savePlayerData(players[index]);
+
+            document.getElementById("status").innerText = "Atualizando gols...";
+            fetch(sheetUrl, {
+                method: "POST",
+                body: JSON.stringify({ action: "update", name: players[index].name, goals: players[index].goals })
+            })
+            .then(() => fetchPlayers())
+            .catch(() => document.getElementById("status").innerText = "Erro ao atualizar gols.");
         }
 
         function removeGoal(index) {
             if (players[index].goals > 0) {
                 players[index].goals--;
                 updateRanking();
-                savePlayerData(players[index]);
+
+                document.getElementById("status").innerText = "Atualizando gols...";
+                fetch(sheetUrl, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "update", name: players[index].name, goals: players[index].goals })
+                })
+                .then(() => fetchPlayers())
+                .catch(() => document.getElementById("status").innerText = "Erro ao atualizar gols.");
             }
         }
 
         function removePlayer(index) {
             const name = players[index].name;
-
             players.splice(index, 1);
             updateRanking();
 
-            document.getElementById("status").textContent = "Removendo...";
+            document.getElementById("status").innerText = "Removendo jogador...";
             fetch(sheetUrl, {
                 method: "POST",
                 body: JSON.stringify({ action: "remove", name })
-            }).then(() => {
-                document.getElementById("status").textContent = "";
-            }).catch(error => {
-                document.getElementById("status").textContent = "Erro ao remover.";
-                console.error("Erro ao remover jogador:", error);
-            });
-        }
-
-        function savePlayerData(player) {
-            fetch(sheetUrl, {
-                method: "POST",
-                body: JSON.stringify({ action: "update", name: player.name, goals: player.goals })
-            });
+            })
+            .then(() => fetchPlayers());
         }
 
         function updateRanking() {
@@ -104,10 +120,21 @@
 
             players.forEach((player, index) => {
                 const li = document.createElement("li");
-                li.innerHTML = `${index + 1} - ${player.name} - ${player.goals} gols 
+
+                const playerInfo = document.createElement("span");
+                playerInfo.className = "player-info";
+                playerInfo.innerText = `${index + 1} - ${player.name} - ${player.goals} gols`;
+
+                const btnGroup = document.createElement("div");
+                btnGroup.className = "btn-group";
+                btnGroup.innerHTML = `
                     <button onclick="addGoal(${index})">+1 Gol</button>
                     <button onclick="removeGoal(${index})">-1 Gol</button>
-                    <button onclick="removePlayer(${index})">❌ Remover</button>`;
+                    <button onclick="removePlayer(${index})">❌</button>
+                `;
+
+                li.appendChild(playerInfo);
+                li.appendChild(btnGroup);
                 rankingList.appendChild(li);
             });
         }
