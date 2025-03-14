@@ -1,25 +1,128 @@
-<script>
-    function addGoal(index) {
-        players[index].goals++;
-        updateRanking();
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artilharia da Pelada</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input, button { margin: 5px; padding: 10px; font-size: 16px; }
+        ul { list-style: none; padding: 0; }
+        li { margin: 10px 0; font-size: 18px; display: flex; align-items: center; justify-content: space-between; }
+        .buttons { display: flex; gap: 5px; }
+        .loading { font-size: 14px; color: gray; }
+    </style>
+</head>
+<body>
 
-        document.getElementById("status").innerText = "Atualizando gols...";
-        fetch(sheetUrl + `?action=update&name=${encodeURIComponent(players[index].name)}&goals=${players[index].goals}`)
-            .then(() => fetchPlayers())
-            .catch(() => document.getElementById("status").innerText = "Erro ao atualizar gols.");
-    }
+    <h2>Artilharia da Pelada</h2>
 
-    function removeGoal(index) {
-        if (players[index].goals > 0) {
-            players[index].goals--;
+    <input type="text" id="playerName" placeholder="Nome do jogador">
+    <button onclick="addPlayer()">Adicionar Jogador</button>
+    
+    <ul id="ranking"></ul>
+
+    <script>
+        const sheetUrl = "https://script.google.com/macros/s/AKfycbxvgj6qx8FfRgSTpd5saFd9RcFqq7eCIXYDMw4N2KZjd2LOfpsFIlggG77L6YIR3wlK/exec";
+        let players = [];
+
+        function fetchPlayers() {
+            fetch(sheetUrl + "?action=get")
+                .then(response => response.json())
+                .then(data => {
+                    players = data;
+                    updateRanking();
+                });
+        }
+
+        function addPlayer() {
+            const name = document.getElementById("playerName").value.trim();
+            if (name === "") return;
+
+            players.push({ name, goals: 0 });
             updateRanking();
 
-            document.getElementById("status").innerText = "Atualizando gols...";
-            fetch(sheetUrl + `?action=update&name=${encodeURIComponent(players[index].name)}&goals=${players[index].goals}`)
+            fetch(sheetUrl + `?action=add&name=${encodeURIComponent(name)}`)
                 .then(() => fetchPlayers())
-                .catch(() => document.getElementById("status").innerText = "Erro ao atualizar gols.");
+                .catch(error => console.error("Erro ao adicionar jogador:", error));
+
+            document.getElementById("playerName").value = "";
         }
-    }
-</script>
 
+        function addGoal(index) {
+            players[index].loading = true;
+            updateRanking();
 
+            fetch(sheetUrl, {
+                method: "POST",
+                body: JSON.stringify({ action: "update", name: players[index].name, goals: players[index].goals + 1 })
+            })
+            .then(() => {
+                players[index].goals++;
+                players[index].loading = false;
+                updateRanking();
+            })
+            .catch(() => {
+                players[index].loading = false;
+                alert("Erro ao atualizar gol!");
+            });
+        }
+
+        function removeGoal(index) {
+            if (players[index].goals > 0) {
+                players[index].loading = true;
+                updateRanking();
+
+                fetch(sheetUrl, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "update", name: players[index].name, goals: players[index].goals - 1 })
+                })
+                .then(() => {
+                    players[index].goals--;
+                    players[index].loading = false;
+                    updateRanking();
+                })
+                .catch(() => {
+                    players[index].loading = false;
+                    alert("Erro ao atualizar gol!");
+                });
+            }
+        }
+
+        function removePlayer(index) {
+            const name = players[index].name;
+
+            players.splice(index, 1);
+            updateRanking();
+
+            fetch(sheetUrl, {
+                method: "POST",
+                body: JSON.stringify({ action: "remove", name })
+            });
+        }
+
+        function updateRanking() {
+            players.sort((a, b) => b.goals - a.goals);
+            const rankingList = document.getElementById("ranking");
+            rankingList.innerHTML = "";
+
+            players.forEach((player, index) => {
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <span>${index + 1} - ${player.name} - ${player.goals} gols</span>
+                    <div class="buttons">
+                        <button onclick="addGoal(${index})">+1 Gol</button>
+                        <button onclick="removeGoal(${index})">-1 Gol</button>
+                        <button onclick="removePlayer(${index})">❌</button>
+                    </div>
+                    ${player.loading ? '<div class="loading">Atualizando...</div>' : ''}
+                `;
+                rankingList.appendChild(li);
+            });
+        }
+
+        fetchPlayers();
+    </script>
+
+</body>
+</html>
