@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Artilharia da Pelada</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        input, button { margin: 5px; padding: 10px; }
+        ul { list-style: none; padding: 0; }
+    </style>
+</head>
+<body>
+
+    <h2>Artilharia da Pelada</h2>
+
+    <input type="text" id="playerName" placeholder="Nome do jogador">
+    <button onclick="addPlayer()">Adicionar Jogador</button>
+
+    <ul id="ranking"></ul>
+
+    <script>
+        let players = [];
+
+        function addPlayer() {
+            const name = document.getElementById("playerName").value;
+            if (name.trim() === "") return;
+            players.push({ name, goals: 0 });
+            document.getElementById("playerName").value = "";
+            updateRanking();
+        }
+
+        function addGoal(index) {
+            players[index].goals++;
+            updateRanking();
+        }
+
+        function updateRanking() {
+            players.sort((a, b) => b.goals - a.goals);
+            const rankingList = document.getElementById("ranking");
+            rankingList.innerHTML = "";
+            players.forEach((player, index) => {
+                const li = document.createElement("li");
+                li.innerHTML = `${player.name} - ${player.goals} gols 
+                                <button onclick="addGoal(${index})">+1 Gol</button>`;
+                rankingList.appendChild(li);
+            });
+        }
+    </script>
+
+</body>
+</html>
