@@ -13,36 +13,48 @@
 <body>
 
     <h2>Artilharia da Pelada</h2>
-    
+
+    <input type="text" id="playerName" placeholder="Nome do jogador">
+    <button onclick="addPlayer()">Adicionar Jogador</button>
+
     <ul id="ranking"></ul>
 
     <script>
-        const scriptUrl = "https://script.google.com/macros/s/AKfycbxez0qfQw0wZ9aH0syboNsgrap50RN8MqgX58E49cmpCPfyJUpZUK7ecyxVdr4C46uk/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxez0qfQw0wZ9aH0syboNsgrap50RN8MqgX58E49cmpCPfyJUpZUK7ecyxVdr4C46uk/exec"; // Substituir pelo link da API
 
-        async function fetchRanking() {
-            const response = await fetch(scriptUrl + "?action=getRanking");
-            const data = await response.json();
-            updateRankingList(data);
+        async function fetchArtilheiros() {
+            const response = await fetch(`${API_URL}?func=getArtilheiros`);
+            const players = await response.json();
+            updateRanking(players);
         }
 
-        function updateRankingList(players) {
+        function updateRanking(players) {
+            players.sort((a, b) => b.goals - a.goals);
             const rankingList = document.getElementById("ranking");
             rankingList.innerHTML = "";
-            players.forEach(player => {
+            players.forEach((player, index) => {
                 const li = document.createElement("li");
-                li.innerHTML = `${player[0]} - ${player[1]} gols 
-                                <button onclick="updateGoals('${player[0]}', 1)">+1 Gol</button>
-                                <button onclick="updateGoals('${player[0]}', -1)">-1 Gol</button>`;
+                li.innerHTML = `${player.name} - ${player.goals} gols 
+                    <button onclick="updateGoals('${player.name}', 1)">+1 Gol</button>
+                    <button onclick="updateGoals('${player.name}', -1)">-1 Gol</button>`;
                 rankingList.appendChild(li);
             });
         }
 
-        async function updateGoals(playerName, change) {
-            await fetch(scriptUrl + `?action=updateGoals&player=${encodeURIComponent(playerName)}&change=${change}`);
-            fetchRanking();
+        async function addPlayer() {
+            const name = document.getElementById("playerName").value;
+            if (name.trim() === "") return;
+            await fetch(`${API_URL}?func=addJogador&name=${encodeURIComponent(name)}`);
+            document.getElementById("playerName").value = "";
+            fetchArtilheiros();
         }
 
-        fetchRanking();
+        async function updateGoals(name, change) {
+            await fetch(`${API_URL}?func=addGol&name=${encodeURIComponent(name)}&change=${change}`);
+            fetchArtilheiros();
+        }
+
+        fetchArtilheiros();
     </script>
 
 </body>
