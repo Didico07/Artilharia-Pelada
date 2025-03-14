@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         input, button { margin: 5px; padding: 10px; }
         ul { list-style: none; padding: 0; }
-        .player { display: flex; justify-content: center; align-items: center; gap: 10px; }
+        li { margin: 5px; padding: 10px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -21,45 +21,51 @@
     <ul id="ranking"></ul>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwlx0VRSGC7vlKQmMrYVrYgzfckiCetU4jC5PLkRqAHTnYXSVfH-0ldy5ooEjRBIX0g/exec"; // Substitua pela URL do seu Web App
+        const sheetUrl = "https://script.google.com/macros/s/AKfycbwlx0VRSGC7vlKQmMrYVrYgzfckiCetU4jC5PLkRqAHTnYXSVfH-0ldy5ooEjRBIX0g/exec";
 
-        async function fetchPlayers() {
-            const response = await fetch(WEB_APP_URL + "?action=get");
-            const players = await response.json();
-            updateRanking(players);
+        function fetchRanking() {
+            fetch(sheetUrl + "?action=get")
+                .then(response => response.json())
+                .then(data => {
+                    const rankingList = document.getElementById("ranking");
+                    rankingList.innerHTML = "";
+                    data.forEach((player, index) => {
+                        const li = document.createElement("li");
+                        li.innerHTML = `
+                            ${player.name} - Gols: ${player.goals} 
+                            <button onclick="addGoal(${index})">+1 Gol</button>
+                            <button onclick="removeGoal(${index})">-1 Gol</button>
+                            <button onclick="removePlayer(${index})">Remover</button>
+                        `;
+                        ranking.appendChild(li);
+                    });
+                })
+                .catch(error => console.error("Erro ao buscar ranking:", error));
         }
 
-        async function addPlayer() {
+        function addPlayer() {
             const name = document.getElementById("playerName").value.trim();
-            if (!name) return;
-
-            await fetch(WEB_APP_URL + "?action=add&name=" + encodeURIComponent(name));
-            document.getElementById("playerName").value = "";
-            fetchPlayers();
+            if (name === "") return;
+            fetch(sheetUrl + "?action=add&name=" + encodeURIComponent(name))
+                .then(() => fetchRanking());
         }
 
-        async function updateGoals(name, change) {
-            await fetch(WEB_APP_URL + `?action=update&name=${encodeURIComponent(name)}&change=${change}`);
-            fetchPlayers();
+        function addGoal(index) {
+            fetch(sheetUrl + "?action=addGoal&index=" + index)
+                .then(() => fetchRanking());
         }
 
-        function updateRanking(players) {
-            const rankingList = document.getElementById("ranking");
-            rankingList.innerHTML = "";
-
-            players.forEach(player => {
-                const li = document.createElement("li");
-                li.classList.add("player");
-                li.innerHTML = `
-                    ${player.name} - ${player.goals} gols
-                    <button onclick="updateGoals('${player.name}', 1)">+1</button>
-                    <button onclick="updateGoals('${player.name}', -1)">-1</button>
-                `;
-                rankingList.appendChild(li);
-            });
+        function removeGoal(index) {
+            fetch(sheetUrl + "?action=removeGoal&index=" + index)
+                .then(() => fetchRanking());
         }
 
-        fetchPlayers(); // Carrega os dados ao abrir a página
+        function removePlayer(index) {
+            fetch(sheetUrl + "?action=removePlayer&index=" + index)
+                .then(() => fetchRanking());
+        }
+
+        fetchRanking();
     </script>
 
 </body>
