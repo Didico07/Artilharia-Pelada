@@ -13,39 +13,36 @@
 <body>
 
     <h2>Artilharia da Pelada</h2>
-
-    <input type="text" id="playerName" placeholder="Nome do jogador">
-    <button onclick="addPlayer()">Adicionar Jogador</button>
-
+    
     <ul id="ranking"></ul>
 
     <script>
-        let players = [];
+        const scriptUrl = "COLOQUE_A_URL_DA_WEB_APP_AQUI";
 
-        function addPlayer() {
-            const name = document.getElementById("playerName").value;
-            if (name.trim() === "") return;
-            players.push({ name, goals: 0 });
-            document.getElementById("playerName").value = "";
-            updateRanking();
+        async function fetchRanking() {
+            const response = await fetch(scriptUrl + "?action=getRanking");
+            const data = await response.json();
+            updateRankingList(data);
         }
 
-        function addGoal(index) {
-            players[index].goals++;
-            updateRanking();
-        }
-
-        function updateRanking() {
-            players.sort((a, b) => b.goals - a.goals);
+        function updateRankingList(players) {
             const rankingList = document.getElementById("ranking");
             rankingList.innerHTML = "";
-            players.forEach((player, index) => {
+            players.forEach(player => {
                 const li = document.createElement("li");
-                li.innerHTML = `${player.name} - ${player.goals} gols 
-                                <button onclick="addGoal(${index})">+1 Gol</button>`;
+                li.innerHTML = `${player[0]} - ${player[1]} gols 
+                                <button onclick="updateGoals('${player[0]}', 1)">+1 Gol</button>
+                                <button onclick="updateGoals('${player[0]}', -1)">-1 Gol</button>`;
                 rankingList.appendChild(li);
             });
         }
+
+        async function updateGoals(playerName, change) {
+            await fetch(scriptUrl + `?action=updateGoals&player=${encodeURIComponent(playerName)}&change=${change}`);
+            fetchRanking();
+        }
+
+        fetchRanking();
     </script>
 
 </body>
