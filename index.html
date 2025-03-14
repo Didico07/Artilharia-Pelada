@@ -9,6 +9,7 @@
         input, button { margin: 5px; padding: 10px; font-size: 16px; }
         ul { list-style: none; padding: 0; }
         li { margin: 5px 0; font-size: 18px; }
+        .loading { font-size: 14px; color: gray; }
     </style>
 </head>
 <body>
@@ -19,10 +20,10 @@
     <button onclick="addPlayer()">Adicionar Jogador</button>
     
     <ul id="ranking"></ul>
+    <p id="status" class="loading"></p>
 
     <script>
         const sheetUrl = "https://script.google.com/macros/s/AKfycbxvgj6qx8FfRgSTpd5saFd9RcFqq7eCIXYDMw4N2KZjd2LOfpsFIlggG77L6YIR3wlK/exec";
-
         let players = [];
 
         function fetchPlayers() {
@@ -38,14 +39,21 @@
             const name = document.getElementById("playerName").value.trim();
             if (name === "") return;
 
-            // Atualiza visualmente primeiro para evitar lentidão
+            // Atualiza a tela primeiro
             players.push({ name, goals: 0 });
             updateRanking();
 
-            // Depois, envia para o Google Sheets em background
+            // Envia para o Google Sheets em background
+            document.getElementById("status").textContent = "Salvando...";
             fetch(sheetUrl + `?action=add&name=${encodeURIComponent(name)}`)
-                .then(() => loadRanking()) // Atualiza os dados após adicionar
-                .catch(error => console.error("Erro ao adicionar jogador:", error));
+                .then(() => {
+                    document.getElementById("status").textContent = "";
+                    fetchPlayers(); // Atualiza os dados para garantir que estão certos
+                })
+                .catch(error => {
+                    document.getElementById("status").textContent = "Erro ao salvar.";
+                    console.error("Erro ao adicionar jogador:", error);
+                });
 
             document.getElementById("playerName").value = "";
         }
@@ -53,38 +61,39 @@
         function addGoal(index) {
             players[index].goals++;
             updateRanking();
-
-            // Envia atualização para o Google Sheets
-            fetch(sheetUrl, {
-                method: "POST",
-                body: JSON.stringify({ action: "update", name: players[index].name, goals: players[index].goals })
-            });
+            savePlayerData(players[index]);
         }
 
         function removeGoal(index) {
             if (players[index].goals > 0) {
                 players[index].goals--;
                 updateRanking();
-
-                // Envia atualização para o Google Sheets
-                fetch(sheetUrl, {
-                    method: "POST",
-                    body: JSON.stringify({ action: "update", name: players[index].name, goals: players[index].goals })
-                });
+                savePlayerData(players[index]);
             }
         }
 
         function removePlayer(index) {
             const name = players[index].name;
 
-            // Atualiza visualmente primeiro
             players.splice(index, 1);
             updateRanking();
 
-            // Remove do Google Sheets
+            document.getElementById("status").textContent = "Removendo...";
             fetch(sheetUrl, {
                 method: "POST",
                 body: JSON.stringify({ action: "remove", name })
+            }).then(() => {
+                document.getElementById("status").textContent = "";
+            }).catch(error => {
+                document.getElementById("status").textContent = "Erro ao remover.";
+                console.error("Erro ao remover jogador:", error);
+            });
+        }
+
+        function savePlayerData(player) {
+            fetch(sheetUrl, {
+                method: "POST",
+                body: JSON.stringify({ action: "update", name: player.name, goals: player.goals })
             });
         }
 
@@ -103,24 +112,9 @@
             });
         }
 
-        function fetchPlayersFromSheet() {
-            fetch(sheetUrl + "?action=get")
-                .then(res => res.json())
-                .then(data => {
-                    players = data;
-                    updateRanking();
-                });
-        }
-
-        let players = [];
-        fetchPlayersFromSheet();
+        fetchPlayers();
     </script>
 
 </body>
 </html>
-    </script>
-</body>
-</html>
 
-</body>
-</html>
