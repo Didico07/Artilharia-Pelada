@@ -1,61 +1,66 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Artilharia da Pelada</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        input, button { margin: 5px; padding: 10px; }
-        ul { list-style: none; padding: 0; }
-    </style>
-</head>
-<body>
+const webAppUrl = "COLOQUE_A_URL_DA_WEB_APP_AQUI";
+let players = [];
 
-    <h2>Artilharia da Pelada</h2>
+document.addEventListener("DOMContentLoaded", () => {
+    loadPlayers();
+});
 
-    <input type="text" id="playerName" placeholder="Nome do jogador">
-    <button onclick="addPlayer()">Adicionar Jogador</button>
+function addPlayer() {
+    const nameInput = document.getElementById("playerName").value.trim();
+    if (name !== "") {
+        fetch("COLOQUE_A_URL_DA_WEB_APP_AQUI", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "addPlayer", name })
+        }).then(response => response.json())
+          .then(data => {
+              updateRanking(data);
+          });
+        document.getElementById("playerName").value = "";
+    }
+}
 
-    <ul id="ranking"></ul>
+function loadPlayers() {
+    fetch("COLOQUE_A_URL_DA_WEB_APP_AQUI")
+        .then(response => response.json())
+        .then(data => {
+            players = data;
+            updateRanking();
+        });
+}
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxez0qfQw0wZ9aH0syboNsgrap50RN8MqgX58E49cmpCPfyJUpZUK7ecyxVdr4C46uk/exec"; // Substituir pelo link da API
+function updateRanking() {
+    players.sort((a, b) => b.goals - a.gols);
+    const rankingList = document.getElementById("ranking");
+    rankingList.innerHTML = "";
+    players.forEach((player, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `${index + 1}. ${player.name} - ${player.goals} gols 
+            <button onclick="updateGoals('${player.name}', 1)">+1</button>
+            <button onclick="updateGoals('${player.name}', -1)">-1</button>`;
+        rankingList.appendChild(li);
+    });
+}
 
-        async function fetchArtilheiros() {
-            const response = await fetch(`${API_URL}?func=getArtilheiros`);
-            const players = await response.json();
-            updateRanking(players);
-        }
+function updateGoals(name, change) {
+    fetch("COLOQUE_A_URL_DA_WEB_APP_AQUI", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name, change: change })
+    }).then(response => response.json())
+      .then(data => {
+          players = data;
+          updateRanking();
+      });
+}
 
-        function updateRanking(players) {
-            players.sort((a, b) => b.goals - a.goals);
-            const rankingList = document.getElementById("ranking");
-            rankingList.innerHTML = "";
-            players.forEach((player, index) => {
-                const li = document.createElement("li");
-                li.innerHTML = `${player.name} - ${player.goals} gols 
-                    <button onclick="updateGoals('${player.name}', 1)">+1 Gol</button>
-                    <button onclick="updateGoals('${player.name}', -1)">-1 Gol</button>`;
-                rankingList.appendChild(li);
-            });
-        }
-
-        async function addPlayer() {
-            const name = document.getElementById("playerName").value;
-            if (name.trim() === "") return;
-            await fetch(`${API_URL}?func=addJogador&name=${encodeURIComponent(name)}`);
-            document.getElementById("playerName").value = "";
-            fetchArtilheiros();
-        }
-
-        async function updateGoals(name, change) {
-            await fetch(`${API_URL}?func=addGol&name=${encodeURIComponent(name)}&change=${change}`);
-            fetchArtilheiros();
-        }
-
-        fetchArtilheiros();
-    </script>
-
-</body>
-</html>
+function updateRanking() {
+    players.sort((a, b) => b.goals - a.goals);
+    const rankingList = document.getElementById("ranking");
+    rankingList.innerHTML = "";
+    players.forEach((player, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `${index + 1}. ${player.name} - ${player.goals} gols`;
+        rankingList.appendChild(li);
+    });
+}
