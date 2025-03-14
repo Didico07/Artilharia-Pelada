@@ -8,7 +8,6 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         input, button { margin: 5px; padding: 10px; }
         ul { list-style: none; padding: 0; }
-        li { margin: 5px; padding: 10px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
     </style>
 </head>
 <body>
@@ -21,51 +20,87 @@
     <ul id="ranking"></ul>
 
     <script>
-        const sheetUrl = "https://script.google.com/macros/s/AKfycbxvgj6qx8FfRgSTpd5saFd9RcFqq7eCIXYDMw4N2KZjd2LOfpsFIlggG77L6YIR3wlK/exec";
+        const scriptUrl = "https://script.google.com/macros/s/AKfycbxvgj6qx8FfRgSTpd5saFd9RcFqq7eCIXYDMw4N2KZjd2LOfpsFIlggG77L6YIR3wlK/exec"; // Substitua pelo link do seu script do Google Apps Script
 
-        function fetchRanking() {
-            fetch(sheetUrl + "?action=get")
-                .then(response => response.json())
-                .then(data => {
-                    const rankingList = document.getElementById("ranking");
-                    rankingList.innerHTML = "";
-                    data.forEach((player, index) => {
-                        const li = document.createElement("li");
-                        li.innerHTML = `
-                            ${player.name} - Gols: ${player.goals} 
-                            <button onclick="addGoal(${index})">+1 Gol</button>
-                            <button onclick="removeGoal(${index})">-1 Gol</button>
-                            <button onclick="removePlayer(${index})">Remover</button>
-                        `;
-                        ranking.appendChild(li);
-                    });
-                })
-                .catch(error => console.error("Erro ao buscar ranking:", error));
+        async function fetchRanking() {
+            try {
+                let response = await fetch(scriptUrl);
+                let data = await response.json();
+                players = data.players;
+                updateRanking();
+            } catch (error) {
+                console.error("Erro ao buscar os dados:", error);
+            }
         }
 
-        function addPlayer() {
-            const name = document.getElementById("playerName").value.trim();
-            if (name === "") return;
-            fetch(sheetUrl + "?action=add&name=" + encodeURIComponent(name))
-                .then(() => fetchRanking());
+        async function addPlayer() {
+            let playerName = document.getElementById("playerName").value.trim();
+            if (!playerName) return;
+
+            // Atualiza imediatamente a interface do usuário
+            players.push({ name: playerName, goals: 0 });
+            updateRanking();
+
+            // Envia requisição ao Google Sheets sem esperar resposta
+            fetch(scriptUrl + "?action=add&name=" + encodeURIComponent(playerName))
+                .catch(error => console.error("Erro ao adicionar jogador:", error));
+
+            document.getElementById("playerName").value = "";
         }
 
-        function addGoal(index) {
-            fetch(sheetUrl + "?action=addGoal&index=" + index)
-                .then(() => fetchRanking());
+        async function addGoal(index) {
+            players[index].goals++;
+            updateRanking(); // Atualiza a interface rapidamente
+
+            // Envia a atualização para a planilha sem esperar resposta
+            fetch(scriptUrl + "?action=addGoal&name=" + encodeURIComponent(players[index].name))
+                .catch(error => console.error("Erro ao adicionar gol:", error));
         }
 
         function removeGoal(index) {
-            fetch(sheetUrl + "?action=removeGoal&index=" + index)
-                .then(() => fetchRanking());
+            if (players[index].goals > 0) {
+                players[index].goals--;
+                updateRanking();
+
+                // Envia a atualização para a planilha sem esperar resposta
+                fetch(scriptUrl + "?action=removeGoal&name=" + encodeURIComponent(players[index].name))
+                    .catch(error => console.error("Erro ao remover gol:", error));
+            }
         }
 
-        function removePlayer(index) {
-            fetch(sheetUrl + "?action=removePlayer&index=" + index)
-                .then(() => fetchRanking());
+        function updateRanking() {
+            players.sort((a, b) => b.goals - a.goals);
+            const rankingList = document.getElementById("ranking");
+            rankingList.innerHTML = "";
+
+            players.forEach((player, index) => {
+                const li = document.createElement("li");
+                li.innerHTML = `${player.name} - ${player.goals} 
+                    <button onclick="addGoal(${index})">+1 Gol</button>
+                    <button onclick="removeGoal(${index})">-1 Gol</button>`;
+                rankingList.appendChild(li);
+            });
         }
 
-        fetchRanking();
+        let players = [];
+
+        function fetchData() {
+            fetch(scriptUrl + "?action=get")
+                .then(response => response.json())
+                .then(data => {
+                    players = data.players || [];
+                    updateRanking();
+                })
+                .catch(error => console.error("Erro ao buscar dados:", error));
+        }
+
+        window.onload = fetchData;
+    </script>
+
+</body>
+</html>
+</html>
+
     </script>
 
 </body>
