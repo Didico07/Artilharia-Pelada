@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +21,7 @@
     <ul id="ranking"></ul>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxez0qfQw0wZ9aH0syboNsgrap50RN8MqgX58E49cmpCPfyJUpZUK7ecyxVdr4C46uk/exec"; // 🔴 Substitua por sua URL do Google Apps Script
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwlx0VRSGC7vlKQmMrYVrYgzfckiCetU4jC5PLkRqAHTnYXSVfH-0ldy5ooEjRBIX0g/exec"; // Substitua pela URL do seu Web App
 
         async function fetchPlayers() {
             const response = await fetch(WEB_APP_URL + "?action=get");
@@ -59,7 +59,7 @@
             });
         }
 
-        fetchPlayers(); // 🔄 Carrega os dados ao abrir a página
+        fetchPlayers(); // Carrega os dados ao abrir a página
     </script>
 
 </body>
